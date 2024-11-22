@@ -1,19 +1,91 @@
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    const socket = io();  // Conexión al servidor de WebSockets
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat en Tiempo Real</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #messages { list-style-type: none; padding: 0; max-height: 300px; overflow-y: auto; }
+        #messages li { padding: 5px; border-bottom: 1px solid #ddd; }
+        #user-list { margin-bottom: 10px; }
+        #user-list li { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>Chat en Tiempo Real</h1>
 
-    function joinRoom() {
-        const roomName = document.getElementById('room').value;
-        socket.emit('joinRoom', roomName);
-    }
+    <!-- Formulario para ingresar nombre -->
+    <div id="username-section">
+        <label for="username">Ingresa tu nombre:</label>
+        <input id="username" placeholder="Tu nombre" />
+        <button id="set-username">Entrar al Chat</button>
+    </div>
 
-    function sendMessage() {
-        const message = document.getElementById('message').value;
-        const roomName = document.getElementById('room').value;
-        socket.emit('chatMessage', message, roomName);
-    }
+    <!-- Chat -->
+    <div id="chat-section" style="display:none;">
+        <h3>Usuarios Conectados</h3>
+        <ul id="user-list"></ul>
 
-    socket.on('message', function(msg) {
-        console.log(msg); // Aquí puedes mostrar el mensaje en tu interfaz
-    });
-</script>
+        <ul id="messages"></ul>
+        <form id="form" action="">
+            <input id="input" autocomplete="off" placeholder="Escribe un mensaje..." />
+            <button>Enviar</button>
+        </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        const usernameInput = document.getElementById('username');
+        const setUsernameButton = document.getElementById('set-username');
+        const usernameSection = document.getElementById('username-section');
+        const chatSection = document.getElementById('chat-section');
+
+        const form = document.getElementById('form');
+        const input = document.getElementById('input');
+        const messages = document.getElementById('messages');
+        const userList = document.getElementById('user-list');
+
+        // Enviar nombre al servidor
+        setUsernameButton.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            if (username) {
+                socket.emit('set username', username);
+                usernameSection.style.display = 'none';
+                chatSection.style.display = 'block';
+            } else {
+                alert('Por favor, ingresa un nombre.');
+            }
+        });
+
+        // Escuchar mensajes del chat
+        socket.on('chat message', (msg) => {
+            const item = document.createElement('li');
+            item.textContent = msg;
+            messages.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        // Escuchar lista de usuarios conectados
+        socket.on('user list', (users) => {
+            userList.innerHTML = '';
+            users.forEach(user => {
+                const item = document.createElement('li');
+                item.textContent = user;
+                userList.appendChild(item);
+            });
+        });
+
+        // Enviar mensajes al servidor
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit('chat message', input.value);
+                input.value = '';
+            }
+        });
+    </script>
+</body>
+</html>

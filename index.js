@@ -1,46 +1,42 @@
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
+const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = new Server(server);
 
-// Ruta principal
+let connectedUsers = {}; // Almacena socketId y nombre de usuario
+
+// Sirve el archivo HTML del cliente
 app.get('/', (req, res) => {
-    res.send("Servidor de chat en tiempo real con WebSockets");
+    res.sendFile(__dirname + '/index.html');
 });
 
-// Evento de conexión
 io.on('connection', (socket) => {
-    console.log('Un usuario se ha conectado');
+    console.log('Un usuario se ha conectado:', socket.id);
 
-    // Unirse a una sala
-    socket.on('joinRoom', (roomName) => {
-        socket.join(roomName);
-        console.log(`Usuario se unió a la sala: ${roomName}`);
-        socket.emit('message', `Te has unido a la sala: ${roomName}`);
+    // Escucha cuando un usuario envía su nombre
+    socket.on('set username', (username) => {
+        connectedUsers[socket.id] = username;
+        console.log(`Usuario registrado: ${username}`);
+        io.emit('user list', Object.values(connectedUsers)); // Enviar lista actualizada
     });
 
-    // Enviar un mensaje a la sala
-    socket.on('chatMessage', (msg, roomName) => {
-        io.to(roomName).emit('message', msg);  // Se emite el mensaje solo a la sala
+    // Escucha mensajes enviados por el cliente
+    socket.on('chat message', (msg) => {
+        const username = connectedUsers[socket.id] || 'Anónimo';
+        io.emit('chat message', `${username}: ${msg}`);
     });
 
-    // Salir de la sala
-    socket.on('leaveRoom', (roomName) => {
-        socket.leave(roomName);
-        console.log(`Usuario salió de la sala: ${roomName}`);
-    });
-
-    // Cuando un usuario se desconecta
+    // Manejo de desconexión
     socket.on('disconnect', () => {
-        console.log('Un usuario se ha desconectado');
+        console.log('Un usuario se ha desconectado:', socket.id);
+        delete connectedUsers[socket.id];
+        io.emit('user list', Object.values(connectedUsers)); // Actualizar lista
     });
 });
 
-// Iniciar servidor
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+server.listen(3000, () => {
+    console.log('Servidor corriendo en http://localhost:3000');
 });
