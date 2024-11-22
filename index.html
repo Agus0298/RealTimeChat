@@ -1,0 +1,19 @@
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();  // Conexión al servidor de WebSockets
+
+    function joinRoom() {
+        const roomName = document.getElementById('room').value;
+        socket.emit('joinRoom', roomName);
+    }
+
+    function sendMessage() {
+        const message = document.getElementById('message').value;
+        const roomName = document.getElementById('room').value;
+        socket.emit('chatMessage', message, roomName);
+    }
+
+    socket.on('message', function(msg) {
+        console.log(msg); // Aquí puedes mostrar el mensaje en tu interfaz
+    });
+</script>
